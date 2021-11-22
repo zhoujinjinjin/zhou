@@ -5,20 +5,20 @@ class Autocoder(nn.Module):
         super(Autocoder,self).__init__()
         self.encoder = nn.Sequential(
             # 6300*8
-            nn.Linear(8, 6),
-            nn.Sigmoid(),
-            nn.Linear(6, 4),
+            nn.Linear(9,5),
             nn.ReLU(),
-            nn.Linear(4, 2)
+            nn.Linear(5,4),
+            nn.ReLU(),
+            nn.Linear(4, 3)
         )
 
         self.decoder = nn.Sequential(
-            nn.Linear(2, 4),
+            nn.Linear(3,4),
             nn.ReLU(),
-            nn.Linear(4, 6),
-            nn.Sigmoid(),
-            nn.Linear(6, 8),
-            nn.Tanh()
+            nn.Linear(4,5),
+            nn.ReLU(),
+            nn.Linear(5,9),
+            # nn.Tanh()
         )
 
     def forward(self,x):

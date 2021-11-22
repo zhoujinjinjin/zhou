@@ -53,10 +53,15 @@ if __name__ == '__main__':
     # sns.boxplot(y='EstimatedSalary', x='CreditLevel', hue='CreditLevel', data=data, ax=axarr[1][1])
 
 
-    data['BalanceSalaryRatio'] = data.Balance/data.EstimatedSalary
-    sns.boxplot(y='BalanceSalaryRatio', x='CreditLevel', hue='CreditLevel', data=data)
+    # data['BalanceSalaryRatio'] = data.Balance/data.EstimatedSalary
+    # sns.boxplot(y='BalanceSalaryRatio', x='CreditLevel', hue='CreditLevel', data=data)
 
     # sns.scatterplot(x='Balance', y='EstimatedSalary', data=data)
 
-    plt.show()
+    # plt.show()
 
+    feature = ['CustomerId', 'Geography', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard',
+                   'IsActiveMember', 'EstimatedSalary', 'Exited']
+    data['hei'] = data['HasCrCard']|data['Exited']|data['IsActiveMember']
+    sns.countplot(x='CreditLevel', hue='hei', data=data)
+    plt.show()

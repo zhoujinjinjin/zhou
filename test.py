@@ -4,52 +4,53 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset, random_split
 import pandas as pd
+from data_process import loadBankDataset
 
-class loadBankDataset(Dataset):
-    def __init__(self, file_name):
-        self.data = pd.read_csv(file_name)
-
-        # self.data['BalanceSalaryRatio'] = self.data.Balance / self.data.EstimatedSalary
-        # unwanted_cols = ['CustomerId', 'Geography', 'Tenure', 'Balance', 'HasCrCard', 'EstimatedSalary']
-        unwanted_cols = ['CustomerId']
-        self.data = self.data.drop(unwanted_cols, axis=1)
-
-        # Length of data
-        self.len = len(self.data)
-
-        # Create CreditLevel list for one hot encoding later
-        self.credit_ls = self.data['CreditLevel'].unique()
-
-        # Create Geography dict to map country to number
-        unique_geo = self.data['Geography'].unique()
-        self.geo_dict = dict()
-        for idx, geo in enumerate(unique_geo):
-            self.geo_dict[geo] = idx
-
-        # Convert country to number
-        self.data['Geography'] = self.data['Geography'].apply(lambda x: self.geo_dict[x])
-
-        # Normalzie Balance and EstimatedSalary
-        self.data['Balance'] = (self.data['Balance'] - self.data['Balance'].min()) \
-                               / (self.data['Balance'].max() - self.data['Balance'].min())
-        # self.data['BalanceSalaryRatio'] = (self.data['BalanceSalaryRatio'] - self.data['BalanceSalaryRatio'].min()) \
-        #                        / (self.data['BalanceSalaryRatio'].max() - self.data['BalanceSalaryRatio'].min())
-
-        self.data['EstimatedSalary'] = (self.data['EstimatedSalary'] - self.data['EstimatedSalary'].min()) \
-                                       / (self.data['EstimatedSalary'].max() - self.data['EstimatedSalary'].min())
-
-
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, idx):
-        # Define CreditLevel as label
-        label = self.data.iloc[idx, 8]  ##
-        label = label - 1
-        # Retreive attributes
-        attribute = self.data.iloc[idx, 0:8].to_numpy()  ##
-        return attribute, label
+# class loadBankDataset(Dataset):
+#     def __init__(self, file_name):
+#         self.data = pd.read_csv(file_name)
+#
+#         # self.data['BalanceSalaryRatio'] = self.data.Balance / self.data.EstimatedSalary
+#         # unwanted_cols = ['CustomerId', 'Geography', 'Tenure', 'Balance', 'HasCrCard', 'EstimatedSalary']
+#         unwanted_cols = ['CustomerId']
+#         self.data = self.data.drop(unwanted_cols, axis=1)
+#
+#         # Length of data
+#         self.len = len(self.data)
+#
+#         # Create CreditLevel list for one hot encoding later
+#         self.credit_ls = self.data['CreditLevel'].unique()
+#
+#         # Create Geography dict to map country to number
+#         unique_geo = self.data['Geography'].unique()
+#         self.geo_dict = dict()
+#         for idx, geo in enumerate(unique_geo):
+#             self.geo_dict[geo] = idx
+#
+#         # Convert country to number
+#         self.data['Geography'] = self.data['Geography'].apply(lambda x: self.geo_dict[x])
+#
+#         # Normalzie Balance and EstimatedSalary
+#         self.data['Balance'] = (self.data['Balance'] - self.data['Balance'].min()) \
+#                                / (self.data['Balance'].max() - self.data['Balance'].min())
+#         # self.data['BalanceSalaryRatio'] = (self.data['BalanceSalaryRatio'] - self.data['BalanceSalaryRatio'].min()) \
+#         #                        / (self.data['BalanceSalaryRatio'].max() - self.data['BalanceSalaryRatio'].min())
+#
+#         self.data['EstimatedSalary'] = (self.data['EstimatedSalary'] - self.data['EstimatedSalary'].min()) \
+#                                        / (self.data['EstimatedSalary'].max() - self.data['EstimatedSalary'].min())
+#
+#
+#
+#     def __len__(self):
+#         return self.len
+#
+#     def __getitem__(self, idx):
+#         # Define CreditLevel as label
+#         label = self.data.iloc[idx, 8]  ##
+#         label = label - 1
+#         # Retreive attributes
+#         attribute = self.data.iloc[idx, 0:8].to_numpy()  ##
+#         return attribute, label
 
 
 class NN(nn.Module):
@@ -72,7 +73,7 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
-bank_dataset = loadBankDataset("BankChurners.csv")
+bank_dataset = loadBankDataset()
 data_len = bank_dataset.len
 
 # Define test data ratio
@@ -86,11 +87,11 @@ train_dataset, test_dataset = random_split(bank_dataset,
 
 # Hyparameters
 learning_rate = 0.01
-num_epochs = 10
+num_epochs = 5
 batch_size = 100
 
 # Initialzie neural network
-input_size = 2  ##
+input_size = 3  ##
 num_class = len(bank_dataset.credit_ls)
 model = NN(input_size, num_class).double().to(device)
 #%%
@@ -102,13 +103,13 @@ optimizer = optim.Adam(model.parameters(), lr = learning_rate)
 train_dataloader = DataLoader(train_dataset, batch_size = batch_size, shuffle=True)
 test_dataloader = DataLoader(test_dataset, batch_size = batch_size, shuffle = False)
 
-encode_model = torch.load('model.pth')
+encode_model = torch.load('./model.pth')
 
 # Train Network
 total_batch = len(train_dataloader)
 for epoch in range(num_epochs):
     for idx, (attribute, label) in enumerate(train_dataloader):
-
+        attribute = attribute.double()  #
         attribute = encode_model.encoder(attribute)
         attribute = attribute.to(device)
         label = label.to(device)
@@ -135,6 +136,7 @@ def check_accuracy(loader, model):
 
     with torch.no_grad():
         for attribute, label in loader:
+            attribute = attribute.double()  #
             attribute = encode_model.encoder(attribute)
             attribute = attribute.to(device)
             logits = model(attribute)
